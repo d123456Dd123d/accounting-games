@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>會計科目分類遊戲 Account Classification Game</title>
+<style>
+  :root{
+    --bg1:#1e1b4b;
+    --bg2:#4c1d95;
+    --bg3:#701a75;
+    --text:#fdf4ff;
+    --muted:#c4b5fd;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2) 45%,var(--bg3) 100%);
+    background-size:200% 200%;
+    animation:bgShift 12s ease infinite;
+    color:var(--text);
+    min-height:100vh;
+    padding:16px;
+    overflow-x:hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select:none;
+  }
+  @keyframes bgShift{
+    0%{background-position:0% 50%;}
+    50%{background-position:100% 50%;}
+    100%{background-position:0% 50%;}
+  }
+  h1{
+    text-align:center;
+    font-size:1.6rem;
+    margin:4px 0 2px;
+    color:#fde047;
+    font-weight:900;
+    text-shadow:
+      0 0 6px rgba(253,224,71,0.7),
+      0 0 14px rgba(244,114,182,0.5),
+      0 0 22px rgba(56,189,248,0.35);
+    animation:titleGlow 3s ease-in-out infinite alternate;
+    letter-spacing:0.5px;
+  }
+  @keyframes titleGlow{
+    0%{
+      color:#fde047;
+      text-shadow:0 0 6px rgba(253,224,71,0.7), 0 0 16px rgba(244,114,182,0.45);
+    }
+    50%{
+      color:#f472b6;
+      text-shadow:0 0 6px rgba(244,114,182,0.7), 0 0 16px rgba(167,139,250,0.5);
+    }
+    100%{
+      color:#38bdf8;
+      text-shadow:0 0 6px rgba(56,189,248,0.7), 0 0 16px rgba(253,224,71,0.45);
+    }
+  }
+  .subtitle-en{
+    text-align:center;
+    color:var(--muted);
+    font-size:0.78rem;
+    font-style:italic;
+    opacity:0.85;
+    margin:-2px 0 6px;
+    letter-spacing:0.03em;
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--muted);
+    font-size:0.9rem;
+    margin-bottom:14px;
+    line-height:1.5;
+  }
+  .scoreboard{
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    margin-bottom:16px;
+    font-size:0.95rem;
+    flex-wrap:wrap;
+  }
+  .scoreboard span{
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(4px);
+    padding:7px 16px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.15);
+    box-shadow:0 2px 8px rgba(0,0,0,0.25);
+  }
+  #score-correct{color:#4ade80;font-weight:bold;}
+  #score-wrong{color:#fb7185;font-weight:bold;}
+  #score-timer{color:#fde047;font-weight:bold;}
+
+  .hopper{
+    display:flex;
+    flex-wrap:wrap;
+    gap:9px;
+    justify-content:center;
+    padding:16px;
+    background:rgba(255,255,255,0.06);
+    border:2px dashed rgba(255,255,255,0.25);
+    border-radius:16px;
+    margin-bottom:22px;
+    min-height:64px;
+    max-height:170px;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .chip{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:1px;
+    padding:7px 16px 8px;
+    background:linear-gradient(135deg,#fb7185,#f472b6,#a78bfa,#38bdf8,#4ade80,#fbbf24);
+    background-size:400% 400%;
+    animation:chipGradient 6s ease infinite;
+    color:#1e1b4b;
+    font-weight:700;
+    border:none;
+    border-radius:16px;
+    font-size:0.92rem;
+    cursor:grab;
+    touch-action:none;
+    box-shadow:0 3px 8px rgba(0,0,0,0.35);
+    transition:transform .15s ease, box-shadow .15s ease;
+    position:relative;
+    z-index:5;
+    line-height:1.15;
+  }
+  .chip-zh{ font-size:1em; font-weight:800; }
+  .chip-en{ font-size:0.66em; font-weight:600; opacity:0.75; letter-spacing:0.02em; }
+  @keyframes chipGradient{
+    0%{background-position:0% 50%;}
+    50%{background-position:100% 50%;}
+    100%{background-position:0% 50%;}
+  }
+  .chip:hover{transform:translateY(-2px) scale(1.03);}
+  .chip:active{cursor:grabbing;}
+  .chip.dragging{
+    opacity:0.95;
+    transform:scale(1.12) rotate(-2deg);
+    box-shadow:0 10px 24px rgba(0,0,0,0.5);
+    z-index:1000;
+  }
+  .chip.shake{ animation:shake .4s ease; }
+  @keyframes shake{
+    0%,100%{transform:translateX(0);}
+    20%{transform:translateX(-8px) rotate(-4deg);}
+    40%{transform:translateX(8px) rotate(4deg);}
+    60%{transform:translateX(-6px);}
+    80%{transform:translateX(6px);}
+  }
+
+  .board{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(190px,1fr));
+    gap:18px;
+  }
+
+  /* ---- BASKET ZONE ---- */
+  .zone{
+    position:relative;
+    padding-top:4px;
+    transition:transform .15s;
+  }
+  .zone.dragover{ transform:scale(1.05); }
+  .basket-label{
+    text-align:center;
+    font-size:1.05rem;
+    font-weight:800;
+    margin-bottom:8px;
+    letter-spacing:0.5px;
+  }
+  .zone[data-cat="資產"] .basket-label{color:#60a5fa;}
+  .zone[data-cat="負債"] .basket-label{color:#fb7185;}
+  .zone[data-cat="權益"] .basket-label{color:#c084fc;}
+  .zone[data-cat="收入"] .basket-label{color:#34d399;}
+  .zone[data-cat="費損"] .basket-label{color:#fbbf24;}
+
+  .basket-body{
+    position:relative;
+    min-height:150px;
+    border-radius: 14px 14px 46% 46% / 14px 14px 30% 30%;
+    border:3px solid rgba(0,0,0,0.35);
+    padding:20px 10px 18px;
+    overflow:hidden;
+    box-shadow: inset 0 10px 18px rgba(0,0,0,0.35), 0 8px 16px rgba(0,0,0,0.35);
+  }
+  .zone.dragover .basket-body{
+    box-shadow: inset 0 10px 18px rgba(0,0,0,0.35), 0 0 0 3px rgba(255,255,255,0.6), 0 8px 20px rgba(0,0,0,0.4);
+  }
+  .zone[data-cat="資產"] .basket-body{
+    background:repeating-linear-gradient(135deg,#3b82f6 0 10px,#2563eb 10px 20px);
+    border-color:#1d4ed8;
+  }
+  .zone[data-cat="負債"] .basket-body{
+    background:repeating-linear-gradient(135deg,#fb7185 0 10px,#e11d48 10px 20px);
+    border-color:#be123c;
+  }
+  .zone[data-cat="權益"] .basket-body{
+    background:repeating-linear-gradient(135deg,#c084fc 0 10px,#9333ea 10px 20px);
+    border-color:#7e22ce;
+  }
+  .zone[data-cat="收入"] .basket-body{
+    background:repeating-linear-gradient(135deg,#34d399 0 10px,#059669 10px 20px);
+    border-color:#047857;
+  }
+  .zone[data-cat="費損"] .basket-body{
+    background:repeating-linear-gradient(135deg,#fbbf24 0 10px,#d97706 10px 20px);
+    border-color:#b45309;
+  }
+  .basket-rim{
+    position:absolute;
+    top:-4px; left:-4px; right:-4px;
+    height:16px;
+    background:rgba(0,0,0,0.28);
+    border-radius:10px;
+    box-shadow:0 3px 4px rgba(0,0,0,0.3);
+  }
+
+  .zone-items{
+    position:relative;
+    z-index:2;
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    align-content:flex-start;
+  }
+  .placed-chip{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:0px;
+    padding:5px 11px 6px;
+    border-radius:12px;
+    font-size:0.8rem;
+    background:rgba(255,255,255,0.92);
+    border:1px solid rgba(0,0,0,0.15);
+    color:#1e1b4b;
+    font-weight:700;
+    box-shadow:0 2px 5px rgba(0,0,0,0.3);
+    animation:pop .35s cubic-bezier(.34,1.56,.64,1);
+    line-height:1.1;
+  }
+  .placed-zh{ font-size:1em; font-weight:800; }
+  .placed-en{ font-size:0.62em; font-weight:600; opacity:0.7; }
+  @keyframes pop{
+    0%{transform:scale(0.2) rotate(-10deg);opacity:0;}
+    70%{transform:scale(1.2) rotate(4deg);}
+    100%{transform:scale(1) rotate(0);opacity:1;}
+  }
+
+  .win-banner{
+    text-align:center;
+    margin:22px auto 0;
+    max-width:420px;
+    display:none;
+    background:linear-gradient(135deg,rgba(253,224,71,0.15),rgba(244,114,182,0.15));
+    border:2px solid rgba(253,224,71,0.5);
+    border-radius:18px;
+    padding:18px 20px;
+    animation:winPop .5s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes winPop{
+    0%{transform:scale(0.7);opacity:0;}
+    100%{transform:scale(1);opacity:1;}
+  }
+  .win-title{ font-size:1.4rem; font-weight:900; color:#fde047; margin-bottom:8px; }
+  .win-grade{ font-size:1.1rem; font-weight:bold; color:#f472b6; margin-bottom:10px; }
+  .win-stats{
+    display:flex; flex-direction:column; gap:4px;
+    font-size:0.92rem; color:var(--text); text-align:left;
+    background:rgba(0,0,0,0.2); border-radius:10px; padding:10px 14px;
+  }
+  .win-stats div{display:flex; justify-content:space-between; gap:10px;}
+  .win-stats span{font-size:0.88em; opacity:0.9;}
+  .win-stats b{color:#fde047; white-space:nowrap;}
+
+  .reset-btn{
+    display:block;
+    margin:22px auto 0;
+    padding:10px 26px;
+    background:linear-gradient(135deg,#f472b6,#a78bfa,#38bdf8);
+    border:none;
+    color:#1e1b4b;
+    font-weight:800;
+    border-radius:999px;
+    font-size:0.95rem;
+    cursor:pointer;
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+    transition:transform .15s;
+  }
+  .reset-btn:hover{transform:translateY(-2px) scale(1.03);}
+
+  /* fire overlay */
+  .fire-overlay{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    overflow:hidden;
+    opacity:0;
+    z-index:10;
+    border-radius: 14px 14px 46% 46% / 14px 14px 30% 30%;
+  }
+  .fire-overlay.active{ animation:fireFade 0.9s ease forwards; }
+  @keyframes fireFade{
+    0%{opacity:0;}
+    15%{opacity:1;}
+    80%{opacity:1;}
+    100%{opacity:0;}
+  }
+  .flame{
+    width:24px;
+    height:38px;
+    margin:0 -3px;
+    background:radial-gradient(circle at 50% 80%, #fff7ed 0%, #fde047 25%, #f97316 55%, #dc2626 80%, transparent 100%);
+    border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
+    transform-origin:bottom center;
+    animation:flicker 0.35s infinite alternate ease-in-out;
+    filter:blur(0.3px);
+  }
+  .flame:nth-child(2n){animation-duration:0.28s; height:32px;}
+  .flame:nth-child(3n){animation-duration:0.42s; height:44px;}
+  @keyframes flicker{
+    0%{transform:scaleY(1) scaleX(1) rotate(-2deg); opacity:0.95;}
+    100%{transform:scaleY(1.18) scaleX(0.85) rotate(3deg); opacity:1;}
+  }
+
+  canvas#fx-canvas{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:5000;
+  }
+
+  .wrong-flash .basket-body{ animation:wrongFlash 0.5s ease; }
+  @keyframes wrongFlash{
+    0%,100%{ filter:brightness(1); }
+    30%{ filter:brightness(1.6) saturate(1.4); }
+  }
+
+  /* ---- FULL SCREEN FIRE ---- */
+  #screen-glow{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:3998;
+    opacity:0;
+    background:radial-gradient(ellipse at 50% 100%, rgba(249,115,22,0.55) 0%, rgba(220,38,38,0.35) 35%, rgba(0,0,0,0) 70%);
+  }
+  #screen-glow.active{ animation:glowPulse 1.4s ease forwards; }
+  @keyframes glowPulse{
+    0%{opacity:0;}
+    20%{opacity:1;}
+    70%{opacity:0.9;}
+    100%{opacity:0;}
+  }
+
+  #screen-fire{
+    position:fixed;
+    left:0; right:0; bottom:0;
+    height:55vh;
+    pointer-events:none;
+    z-index:3999;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    overflow:hidden;
+    opacity:0;
+  }
+  #screen-fire.active{ animation:screenFireFade 1.4s ease forwards; }
+  @keyframes screenFireFade{
+    0%{opacity:0; transform:translateY(6%);}
+    12%{opacity:1; transform:translateY(0);}
+    75%{opacity:1;}
+    100%{opacity:0; transform:translateY(2%);}
+  }
+  .big-flame{
+    flex:0 0 auto;
+    margin:0 -1.2vw;
+    border-radius:50% 50% 50% 50% / 62% 62% 38% 38%;
+    background:radial-gradient(circle at 50% 82%, #fff7ed 0%, #fde047 20%, #f97316 50%, #dc2626 78%, rgba(220,38,38,0) 100%);
+    transform-origin:bottom center;
+    animation:bigFlicker 0.5s infinite alternate ease-in-out;
+    filter:blur(0.4px);
+  }
+  @keyframes bigFlicker{
+    0%{transform:scaleY(1) scaleX(1) rotate(-3deg); opacity:0.92;}
+    100%{transform:scaleY(1.22) scaleX(0.82) rotate(3deg); opacity:1;}
+  }
+
+  .screen-shake{ animation:screenShake 0.5s ease; }
+  @keyframes screenShake{
+    0%,100%{ transform:translate(0,0); }
+    20%{ transform:translate(-6px,3px); }
+    40%{ transform:translate(6px,-3px); }
+    60%{ transform:translate(-4px,2px); }
+    80%{ transform:translate(4px,-2px); }
+  }
+
+  /* ---- START OVERLAY ---- */
+  #start-overlay{
+    position:fixed;
+    inset:0;
+    z-index:6000;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2) 45%,var(--bg3) 100%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .start-card{
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(8px);
+    border:2px solid rgba(255,255,255,0.2);
+    border-radius:20px;
+    padding:30px 26px;
+    max-width:360px;
+    width:100%;
+    text-align:center;
+    box-shadow:0 12px 30px rgba(0,0,0,0.4);
+  }
+  .start-card h2{
+    margin:0 0 6px;
+    font-size:1.3rem;
+    color:#fde047;
+    text-shadow:0 0 6px rgba(253,224,71,0.7), 0 0 16px rgba(244,114,182,0.45);
+  }
+  .start-card p{
+    color:var(--muted);
+    font-size:0.85rem;
+    margin:0 0 18px;
+  }
+  .start-field{
+    text-align:left;
+    margin-bottom:14px;
+  }
+  .start-field label{
+    display:block;
+    font-size:0.85rem;
+    color:var(--muted);
+    margin-bottom:5px;
+  }
+  .start-field input{
+    width:100%;
+    padding:10px 12px;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,0.25);
+    background:rgba(0,0,0,0.25);
+    color:var(--text);
+    font-size:0.95rem;
+    outline:none;
+  }
+  .start-field input:focus{
+    border-color:#a78bfa;
+    box-shadow:0 0 0 3px rgba(167,139,250,0.3);
+  }
+  .start-error{
+    color:#fb7185;
+    font-size:0.8rem;
+    min-height:16px;
+    margin:-6px 0 10px;
+  }
+  .start-btn{
+    width:100%;
+    padding:11px;
+    background:linear-gradient(135deg,#f472b6,#a78bfa,#38bdf8);
+    border:none;
+    color:#1e1b4b;
+    font-weight:800;
+    border-radius:999px;
+    font-size:1rem;
+    cursor:pointer;
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+    transition:transform .15s;
+  }
+  .start-btn:hover{ transform:translateY(-2px) scale(1.02); }
+
+  #game-content{ display:none; }
+
+  .player-tag{
+    text-align:center;
+    font-size:0.85rem;
+    color:var(--muted);
+    margin-bottom:10px;
+  }
+  .player-tag b{ color:#fde047; }
+
+  /* ---- MOBILE COMPACT LAYOUT ---- */
+  @media (max-width:640px){
+    body{ padding:10px; }
+    h1{ font-size:1.15rem; margin:2px 0 1px; }
+    .subtitle{ font-size:0.74rem; margin-bottom:8px; }
+    .player-tag{ font-size:0.76rem; margin-bottom:6px; }
+    .scoreboard{ gap:6px; font-size:0.78rem; margin-bottom:10px; }
+    .scoreboard span{ padding:5px 10px; }
+    .hopper{ padding:10px; gap:6px; margin-bottom:12px; max-height:130px; border-radius:12px; }
+    .chip{ padding:5px 10px 6px; font-size:0.76rem; border-radius:12px; }
+    .chip-en{ font-size:0.62em; }
+    .board{ gap:9px; grid-template-columns:repeat(2,1fr); }
+    .basket-label{ font-size:0.78rem; margin-bottom:4px; }
+    .basket-body{ min-height:88px; padding:14px 6px 10px; border-radius:10px 10px 40% 40% / 10px 10px 24% 24%; }
+    .basket-rim{ height:11px; }
+    .placed-chip{ font-size:0.66rem; padding:4px 8px; border-radius:10px; }
+    .placed-en{ font-size:0.6em; }
+    .flame{ width:16px; height:24px; margin:0 -2px; }
+    .win-banner{ padding:14px 14px; margin-top:14px; }
+    .win-title{ font-size:1.1rem; }
+    .win-grade{ font-size:0.92rem; }
+    .win-stats{ font-size:0.82rem; padding:8px 10px; }
+    .reset-btn{ padding:9px 20px; font-size:0.85rem; margin-top:14px; }
+    .start-card{ padding:22px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="start-overlay">
+  <div class="start-card">
+    <h2>🧾 會計科目大分類挑戰</h2>
+    <p style="margin-bottom:2px;">Account Classification Challenge</p>
+    <p>請先輸入您的學號與姓名，開始挑戰！<br>Enter your student ID and name to begin!</p>
+    <div class="start-field">
+      <label for="input-sid">學號 Student ID</label>
+      <input type="text" id="input-sid" placeholder="請輸入學號 / Student ID" autocomplete="off">
+    </div>
+    <div class="start-field">
+      <label for="input-name">姓名 Name</label>
+      <input type="text" id="input-name" placeholder="請輸入姓名 / Name" autocomplete="off">
+    </div>
+    <div class="start-error" id="start-error"></div>
+    <button class="start-btn" id="start-btn">🚀 開始遊戲 Start Game</button>
+  </div>
+</div>
+
+<div id="game-content">
+<h1>🧾✨ 會計科目大分類挑戰 ✨🧾</h1>
+<div class="subtitle-en">Account Classification Challenge</div>
+<div class="subtitle">把下方科目拖進正確的籃子：答對放鞭炮 🎉，答錯燒起來 🔥（每次重玩都會重新洗牌）<br>Drag each term into the correct basket — correct answers set off fireworks 🎉, wrong answers start a fire 🔥 (terms reshuffle every replay)</div>
+<div class="player-tag">學號 ID：<b id="tag-sid">--</b>　姓名 Name：<b id="tag-name">--</b></div>
+
+<div class="scoreboard">
+  <span>剩餘 Remaining：<span id="score-remain">--</span></span>
+  <span>答對 Correct：<span id="score-correct">0</span></span>
+  <span>答錯 Mistakes：<span id="score-wrong">0</span></span>
+  <span>⏱️ Time <span id="score-timer">0</span>s</span>
+</div>
+
+<div class="hopper" id="hopper"></div>
+
+<div class="board" id="board">
+  <div class="zone" data-cat="資產">
+    <div class="basket-label">🏦 資產 Assets</div>
+    <div class="basket-body">
+      <div class="basket-rim"></div>
+      <div class="zone-items"></div>
+    </div>
+    <div class="fire-overlay"></div>
+  </div>
+  <div class="zone" data-cat="負債">
+    <div class="basket-label">📉 負債 Liabilities</div>
+    <div class="basket-body">
+      <div class="basket-rim"></div>
+      <div class="zone-items"></div>
+    </div>
+    <div class="fire-overlay"></div>
+  </div>
+  <div class="zone" data-cat="權益">
+    <div class="basket-label">👑 權益 Equity</div>
+    <div class="basket-body">
+      <div class="basket-rim"></div>
+      <div class="zone-items"></div>
+    </div>
+    <div class="fire-overlay"></div>
+  </div>
+  <div class="zone" data-cat="收入">
+    <div class="basket-label">💰 收入 Revenue</div>
+    <div class="basket-body">
+      <div class="basket-rim"></div>
+      <div class="zone-items"></div>
+    </div>
+    <div class="fire-overlay"></div>
+  </div>
+  <div class="zone" data-cat="費損">
+    <div class="basket-label">🧯 費損 Expenses</div>
+    <div class="basket-body">
+      <div class="basket-rim"></div>
+      <div class="zone-items"></div>
+    </div>
+    <div class="fire-overlay"></div>
+  </div>
+</div>
+
+<div class="win-banner" id="win-banner">
+  <div class="win-title">🎆 挑戰完成！🎆<br><span style="font-size:0.6em;">Challenge Complete!</span></div>
+  <div class="win-grade" id="win-grade"></div>
+  <div class="win-stats">
+    <div><span>學號 Student ID</span><b id="stat-sid">--</b></div>
+    <div><span>姓名 Name</span><b id="stat-name">--</b></div>
+    <div><span>總題數 Total</span><b id="stat-total">--</b></div>
+    <div><span>答對題數 Correct</span><b id="stat-correct">--</b></div>
+    <div><span>答錯次數 Mistakes</span><b id="stat-wrong">--</b></div>
+    <div><span>正確率 Accuracy</span><b id="stat-accuracy">--</b></div>
+    <div><span>花費時間 Time</span><b id="stat-time">--</b></div>
+  </div>
+</div>
+<button class="reset-btn" id="reset-btn">🔄 重新開始（自動洗牌） Restart</button>
+</div>
+
+<div id="screen-glow"></div>
+<div id="screen-fire"></div>
+<canvas id="fx-canvas"></canvas>
+
+<script>
+const TERMS = [
+  {name:"現金", en:"Cash", cat:"資產"},
+  {name:"銀行存款", en:"Bank Deposits", cat:"資產"},
+  {name:"應收帳款", en:"Accounts Receivable", cat:"資產"},
+  {name:"應收票據", en:"Notes Receivable", cat:"資產"},
+  {name:"存貨", en:"Inventory", cat:"資產"},
+  {name:"預付費用", en:"Prepaid Expenses", cat:"資產"},
+  {name:"短期投資", en:"Short-term Investments", cat:"資產"},
+  {name:"土地", en:"Land", cat:"資產"},
+  {name:"房屋及建築", en:"Buildings", cat:"資產"},
+  {name:"機器設備", en:"Machinery & Equipment", cat:"資產"},
+  {name:"累計折舊", en:"Accumulated Depreciation", cat:"資產"},
+  {name:"用品盤存", en:"Supplies", cat:"資產"},
+  {name:"應付帳款", en:"Accounts Payable", cat:"負債"},
+  {name:"應付票據", en:"Notes Payable", cat:"負債"},
+  {name:"短期借款", en:"Short-term Loans", cat:"負債"},
+  {name:"應付薪資", en:"Salaries Payable", cat:"負債"},
+  {name:"應付稅款", en:"Taxes Payable", cat:"負債"},
+  {name:"預收收入", en:"Unearned Revenue", cat:"負債"},
+  {name:"長期借款", en:"Long-term Loans", cat:"負債"},
+  {name:"應付公司債", en:"Bonds Payable", cat:"負債"},
+  {name:"股本", en:"Common Stock", cat:"權益"},
+  {name:"資本公積", en:"Capital Surplus", cat:"權益"},
+  {name:"保留盈餘", en:"Retained Earnings", cat:"權益"},
+  {name:"銷貨收入", en:"Sales Revenue", cat:"收入"},
+  {name:"勞務收入", en:"Service Revenue", cat:"收入"},
+  {name:"利息收入", en:"Interest Revenue", cat:"收入"},
+  {name:"租金收入", en:"Rental Revenue", cat:"收入"},
+  {name:"銷貨成本", en:"Cost of Goods Sold", cat:"費損"},
+  {name:"薪資費用", en:"Salary Expense", cat:"費損"},
+  {name:"租金費用", en:"Rent Expense", cat:"費損"},
+  {name:"折舊費用", en:"Depreciation Expense", cat:"費損"},
+  {name:"廣告費用", en:"Advertising Expense", cat:"費損"},
+  {name:"利息費用", en:"Interest Expense", cat:"費損"},
+  {name:"稅捐費用", en:"Tax Expense", cat:"費損"},
+];
+
+let correctCount = 0;
+let wrongCount = 0;
+let remaining = TERMS.length;
+let startTime = null;
+let timerInterval = null;
+let elapsedSeconds = 0;
+
+const hopper = document.getElementById('hopper');
+const zones = Array.from(document.querySelectorAll('.zone'));
+const scoreRemain = document.getElementById('score-remain');
+const scoreCorrect = document.getElementById('score-correct');
+const scoreWrong = document.getElementById('score-wrong');
+const scoreTimer = document.getElementById('score-timer');
+const winBanner = document.getElementById('win-banner');
+const winGrade = document.getElementById('win-grade');
+const statTotal = document.getElementById('stat-total');
+const statCorrect = document.getElementById('stat-correct');
+const statWrong = document.getElementById('stat-wrong');
+const statAccuracy = document.getElementById('stat-accuracy');
+const statTime = document.getElementById('stat-time');
+const statSid = document.getElementById('stat-sid');
+const statName = document.getElementById('stat-name');
+const resetBtn = document.getElementById('reset-btn');
+
+const startOverlay = document.getElementById('start-overlay');
+const gameContent = document.getElementById('game-content');
+const inputSid = document.getElementById('input-sid');
+const inputName = document.getElementById('input-name');
+const startBtn = document.getElementById('start-btn');
+const startError = document.getElementById('start-error');
+const tagSid = document.getElementById('tag-sid');
+const tagName = document.getElementById('tag-name');
+
+let studentId = '';
+let studentName = '';
+
+function beginGame(){
+  const sid = inputSid.value.trim();
+  const name = inputName.value.trim();
+  if(!sid || !name){
+    startError.textContent = '請完整輸入學號與姓名才能開始遊戲喔！';
+    return;
+  }
+  studentId = sid;
+  studentName = name;
+  tagSid.textContent = studentId;
+  tagName.textContent = studentName;
+  startOverlay.style.display = 'none';
+  gameContent.style.display = 'block';
+}
+
+startBtn.addEventListener('click', beginGame);
+[inputSid, inputName].forEach(inp=>{
+  inp.addEventListener('keydown', e=>{ if(e.key === 'Enter') beginGame(); });
+});
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function startTimerIfNeeded(){
+  if(startTime === null){
+    startTime = Date.now();
+    timerInterval = setInterval(()=>{
+      elapsedSeconds = Math.floor((Date.now()-startTime)/1000);
+      scoreTimer.textContent = elapsedSeconds;
+    }, 250);
+  }
+}
+function stopTimer(){ if(timerInterval){ clearInterval(timerInterval); timerInterval = null; } }
+
+function updateScoreboard(){
+  scoreRemain.textContent = remaining;
+  scoreCorrect.textContent = correctCount;
+  scoreWrong.textContent = wrongCount;
+  if(remaining === 0){
+    stopTimer();
+    showFinalScore();
+    bigFireworks();
+  }
+}
+
+function gradeFor(accuracyPct){
+  if(accuracyPct === 100) return "🏆 完美無瑕！會計小達人！ Flawless! Accounting Star!";
+  if(accuracyPct >= 85) return "🌟 非常優秀，再接再厲！ Excellent — keep it up!";
+  if(accuracyPct >= 70) return "👍 表現不錯，持續加油！ Good job — keep practicing!";
+  if(accuracyPct >= 50) return "💪 及格邊緣，多練習更上手！ Just passing — more practice needed!";
+  return "📚 建議複習會計科目分類再挑戰！ Review the account categories and try again!";
+}
+
+function showFinalScore(){
+  const total = TERMS.length;
+  const accuracy = Math.round((correctCount/(correctCount+wrongCount||1))*100);
+  statSid.textContent = studentId;
+  statName.textContent = studentName;
+  statTotal.textContent = total + " 題";
+  statCorrect.textContent = correctCount + " 題";
+  statWrong.textContent = wrongCount + " 次";
+  statAccuracy.textContent = accuracy + "%";
+  statTime.textContent = elapsedSeconds + " 秒";
+  winGrade.textContent = gradeFor(accuracy);
+  winBanner.style.display = 'block';
+}
+
+function createChip(term){
+  const chip = document.createElement('div');
+  chip.className = 'chip';
+  chip.innerHTML = `<span class="chip-zh">${term.name}</span><span class="chip-en">${term.en}</span>`;
+  chip.dataset.cat = term.cat;
+  chip.dataset.name = term.name;
+  chip.dataset.en = term.en;
+  attachDrag(chip);
+  return chip;
+}
+
+function buildHopper(){
+  hopper.innerHTML = '';
+  shuffle(TERMS).forEach(t => hopper.appendChild(createChip(t)));
+}
+
+let dragEl = null;
+let dragOffsetX = 0, dragOffsetY = 0;
+
+function attachDrag(chip){
+  chip.addEventListener('pointerdown', onPointerDown);
+}
+
+function elementUnderPointerIgnoringDrag(x,y){
+  // Temporarily make the dragged element invisible to hit-testing
+  // so elementFromPoint reports what's actually underneath it.
+  const prevPE = dragEl.style.pointerEvents;
+  dragEl.style.pointerEvents = 'none';
+  const el = document.elementFromPoint(x,y);
+  dragEl.style.pointerEvents = prevPE || '';
+  return el;
+}
+
+function onPointerDown(e){
+  startTimerIfNeeded();
+  const chip = e.currentTarget;
+  chip.setPointerCapture(e.pointerId);
+  dragEl = chip;
+  const rect = chip.getBoundingClientRect();
+  dragOffsetX = e.clientX - rect.left;
+  dragOffsetY = e.clientY - rect.top;
+
+  chip.style.width = rect.width + 'px';
+  chip.classList.add('dragging');
+  chip.style.position = 'fixed';
+  chip.style.left = rect.left + 'px';
+  chip.style.top = rect.top + 'px';
+  document.body.appendChild(chip);
+
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+}
+
+function onPointerMove(e){
+  if(!dragEl) return;
+  dragEl.style.left = (e.clientX - dragOffsetX) + 'px';
+  dragEl.style.top = (e.clientY - dragOffsetY) + 'px';
+
+  zones.forEach(z => z.classList.remove('dragover'));
+  const under = elementUnderPointerIgnoringDrag(e.clientX, e.clientY);
+  const zone = under ? under.closest('.zone') : null;
+  if(zone) zone.classList.add('dragover');
+}
+
+function onPointerUp(e){
+  if(!dragEl) return;
+  window.removeEventListener('pointermove', onPointerMove);
+  window.removeEventListener('pointerup', onPointerUp);
+  zones.forEach(z => z.classList.remove('dragover'));
+
+  const under = elementUnderPointerIgnoringDrag(e.clientX, e.clientY);
+  const zone = under ? under.closest('.zone') : null;
+  const chip = dragEl;
+  dragEl = null;
+
+  chip.style.position = '';
+  chip.style.left = '';
+  chip.style.top = '';
+  chip.style.width = '';
+  chip.classList.remove('dragging');
+
+  if(zone){
+    const targetCat = zone.dataset.cat;
+    if(chip.dataset.cat === targetCat){
+      handleCorrect(chip, zone);
+    } else {
+      handleWrong(chip, zone);
+    }
+  } else {
+    hopper.appendChild(chip);
+  }
+}
+
+function handleCorrect(chip, zone){
+  correctCount++;
+  remaining--;
+  const itemsBox = zone.querySelector('.zone-items');
+  const placed = document.createElement('div');
+  placed.className = 'placed-chip';
+  placed.innerHTML = `<span class="placed-zh">${chip.dataset.name}</span><span class="placed-en">${chip.dataset.en}</span>`;
+  itemsBox.appendChild(placed);
+  chip.remove();
+
+  const rect = zone.getBoundingClientRect();
+  fireworksAt(rect.left + rect.width/2, rect.top + rect.height/2);
+  updateScoreboard();
+}
+
+function handleWrong(chip, zone){
+  wrongCount++;
+  const overlay = zone.querySelector('.fire-overlay');
+  overlay.innerHTML = '';
+  const flameCount = 9;
+  for(let i=0;i<flameCount;i++){
+    const f = document.createElement('div');
+    f.className = 'flame';
+    overlay.appendChild(f);
+  }
+  overlay.classList.remove('active');
+  void overlay.offsetWidth;
+  overlay.classList.add('active');
+  zone.classList.add('wrong-flash');
+  setTimeout(()=> zone.classList.remove('wrong-flash'), 500);
+  setTimeout(()=> overlay.classList.remove('active'), 900);
+
+  hopper.appendChild(chip);
+  chip.classList.add('shake');
+  setTimeout(()=> chip.classList.remove('shake'), 400);
+
+  spreadFireAcrossScreen();
+  updateScoreboard();
+}
+
+function spreadFireAcrossScreen(){
+  const glow = document.getElementById('screen-glow');
+  const fireLayer = document.getElementById('screen-fire');
+
+  // build a wall of flames wide enough to cover any viewport width
+  fireLayer.innerHTML = '';
+  const flameWidth = 34; // px, before random scale
+  const count = Math.ceil(window.innerWidth / (flameWidth*0.55)) + 6;
+  for(let i=0;i<count;i++){
+    const f = document.createElement('div');
+    f.className = 'big-flame';
+    const h = 90 + Math.random()*140;
+    const w = flameWidth + Math.random()*22;
+    f.style.width = w + 'px';
+    f.style.height = h + 'px';
+    f.style.animationDuration = (0.35 + Math.random()*0.35) + 's';
+    f.style.animationDelay = (Math.random()*0.3) + 's';
+    fireLayer.appendChild(f);
+  }
+
+  glow.classList.remove('active');
+  fireLayer.classList.remove('active');
+  void fireLayer.offsetWidth;
+  glow.classList.add('active');
+  fireLayer.classList.add('active');
+
+  document.body.classList.remove('screen-shake');
+  void document.body.offsetWidth;
+  document.body.classList.add('screen-shake');
+
+  setTimeout(()=>{
+    glow.classList.remove('active');
+    fireLayer.classList.remove('active');
+  }, 1450);
+  setTimeout(()=> document.body.classList.remove('screen-shake'), 550);
+}
+
+const canvas = document.getElementById('fx-canvas');
+const ctx = canvas.getContext('2d');
+function resizeCanvas(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+let particles = [];
+const colors = ['#fde047','#f97316','#ef4444','#4ade80','#38bdf8','#a78bfa','#f472b6'];
+
+function fireworksAt(x,y,count=40){
+  for(let i=0;i<count;i++){
+    const angle = (Math.PI*2*i)/count + Math.random()*0.2;
+    const speed = 2.5 + Math.random()*4.5;
+    particles.push({
+      x,y,
+      vx: Math.cos(angle)*speed,
+      vy: Math.sin(angle)*speed,
+      life: 1,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      size: 2 + Math.random()*2.5
+    });
+  }
+}
+
+function bigFireworks(){
+  const w = window.innerWidth, h = window.innerHeight;
+  let bursts = 0;
+  const interval = setInterval(()=>{
+    fireworksAt(Math.random()*w*0.8 + w*0.1, Math.random()*h*0.5 + h*0.15, 60);
+    bursts++;
+    if(bursts>=7) clearInterval(interval);
+  }, 280);
+}
+
+function animate(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach(p=>{
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.05;
+    p.life -= 0.018;
+    ctx.globalAlpha = Math.max(p.life,0);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  particles = particles.filter(p=>p.life>0);
+  requestAnimationFrame(animate);
+}
+animate();
+
+function resetGame(){
+  correctCount = 0;
+  wrongCount = 0;
+  remaining = TERMS.length;
+  startTime = null;
+  elapsedSeconds = 0;
+  stopTimer();
+  scoreTimer.textContent = 0;
+  winBanner.style.display = 'none';
+  zones.forEach(z => z.querySelector('.zone-items').innerHTML = '');
+  buildHopper();
+  updateScoreboard();
+}
+
+resetBtn.addEventListener('click', resetGame);
+
+buildHopper();
+updateScoreboard();
+</script>
+</body>
+</html>

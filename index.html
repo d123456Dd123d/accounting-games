@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>會計遊戲 Accounting Games</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1f2933; --sub:#52606d; --accent:#1d4ed8; --line:#e4e7eb; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif; background:var(--bg); color:var(--ink); line-height:1.6; }
+  header { padding:48px 20px 24px; text-align:center; }
+  header h1 { margin:0 0 6px; font-size:2rem; }
+  header p { margin:0; color:var(--sub); }
+  main { max-width:880px; margin:0 auto; padding:16px 20px 56px; display:grid; gap:20px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:24px; display:flex; flex-direction:column; }
+  .card h2 { margin:0 0 4px; font-size:1.25rem; }
+  .card h3 { margin:0 0 12px; font-size:1rem; font-weight:500; color:var(--sub); }
+  .card p { margin:0 0 6px; }
+  .card .en { color:var(--sub); font-size:.95rem; margin-bottom:18px; }
+  .btn { margin-top:auto; align-self:flex-start; background:var(--accent); color:#fff; text-decoration:none; padding:10px 20px; border-radius:8px; font-weight:600; }
+  .btn:hover { opacity:.9; }
+  footer { text-align:center; padding:20px; color:var(--sub); font-size:.85rem; border-top:1px solid var(--line); }
+</style>
+</head>
+<body>
+<header>
+  <h1>會計遊戲</h1>
+  <p>Accounting Games</p>
+  <p>南臺科技大學 行銷與流通管理系｜Southern Taiwan University of Science and Technology</p>
+</header>
+
+<main>
+  <!-- 遊戲一 / Game 1 -->
+  <section class="card">
+    <h2>遊戲一：會計分錄挑戰</h2>
+    <h3>Game 1: Accounting Journal Entry Challenge</h3>
+    <p>共 30 題交易，含複合分錄。依序選出受影響科目，再判斷科目類別、增減與借貸方，答完顯示成績表。</p>
+    <p class="en">30 transactions, including compound entries. Select the affected accounts, then identify each account's category, increase/decrease, and debit/credit. A score summary appears at the end.</p>
+    <a class="btn" href="game1/index.html">開始遊戲 Play</a>
+  </section>
+
+  <!-- 遊戲二 / Game 2 -->
+  <section class="card">
+    <h2>遊戲二：會計科目大分類挑戰</h2>
+    <h3>Game 2: Account Classification Challenge</h3>
+    <p>將 34 個會計科目拖進資產、負債、業主權益、收益、費損五個籃子，答對放鞭炮、答錯著火，並記錄時間與正確率。</p>
+    <p class="en">Drag 34 accounts into the Asset, Liability, Equity, Revenue, and Expense baskets. Correct drops set off fireworks, wrong drops start a fire; time and accuracy are recorded.</p>
+    <a class="btn" href="game2/index.html">開始遊戲 Play</a>
+  </section>
+</main>
+
+<footer>© 2026 HUNG · Accounting Games for teaching use</footer>
+</body>
+</html>

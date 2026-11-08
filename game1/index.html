@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>會計分錄挑戰</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="會計分錄挑戰">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1D9E75">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%231D9E75%22/><text x=%2250%22 y=%2266%22 font-size=%2250%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22sans-serif%22>會</text></svg>">
+<style>
+  :root {
+    --accent: #0F6E56;
+    --accent-bg: #E1F5EE;
+    --danger: #A32D2D;
+    --danger-bg: #FCEBEB;
+    --success: #3B6D11;
+    --bg: #F7F7F5;
+    --card: #FFFFFF;
+    --border: #E3E1D8;
+    --text: #26211C;
+    --text-secondary: #6B6862;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    -webkit-user-select: none; user-select: none;
+    min-height: 100vh;
+  }
+  #app {
+    max-width: 480px; margin: 0 auto; padding: 20px 16px 40px;
+    min-height: 100vh;
+  }
+  h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+  .muted { color: var(--text-secondary); font-size: 13px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px; margin-top: 14px;
+  }
+  input[type=text] {
+    width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
+    font-size: 16px; background: var(--card); color: var(--text); margin-top: 4px;
+  }
+  input[type=text]:focus { outline: 2px solid var(--accent); }
+  button {
+    font-size: 15px; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--card); color: var(--text);
+    cursor: pointer; transition: transform .1s;
+  }
+  button:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--accent); color: white; border-color: var(--accent);
+    width: 100%; font-weight: 600; padding: 14px; margin-top: 14px;
+  }
+  .grid { display: grid; gap: 8px; margin-top: 10px; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-fit { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+  .picked { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .wrong-flash { background: var(--danger-bg); border-color: var(--danger); }
+  .err { color: var(--danger); font-size: 13px; margin-top: 8px; min-height: 16px; }
+  .fb-ok { color: var(--success); font-size: 13px; margin-top: 10px; font-weight: 600; }
+  .fb-bad { color: var(--danger); font-size: 13px; margin-top: 10px; font-weight: 600; }
+  .progress { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
+  .qtitle { font-size: 16px; font-weight: 600; margin-bottom: 4px; line-height: 1.5; }
+  .acctbadge { font-size: 13px; color: var(--text-secondary); }
+  .acctname { font-size: 17px; font-weight: 700; }
+  table { width: 100%; font-size: 14px; border-collapse: collapse; margin-top: 10px; }
+  td { padding: 8px 0; border-top: 1px solid var(--border); }
+  td:last-child { text-align: right; font-weight: 600; }
+  .step-hidden { display: none; }
+  .foot { text-align: center; font-size: 11px; color: var(--text-secondary); margin-top: 28px; }
+  .en { display: block; font-size: 12px; font-weight: 400; color: var(--text-secondary); margin-top: 2px; line-height: 1.4; }
+  .en-inline { font-size: 12px; font-weight: 400; color: var(--text-secondary); }
+  h1 .en, .qtitle .en { font-size: 13px; }
+  .muted .en { margin-top: 0; }
+  button .en { font-size: 11px; }
+  .acctname .en { font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const TXNS_SRC = [
+{desc:"股東投入現金 $1,000,000 設立公司", correct:[["現金","資產","增加","借方"],["股本","權益","增加","貸方"]], distractors:["應付帳款","銷貨收入","銀行借款","保留盈餘"]},
+{desc:"向銀行借款現金 $500,000", correct:[["現金","資產","增加","借方"],["銀行借款","負債","增加","貸方"]], distractors:["股本","利息費用","應付帳款","應收帳款"]},
+{desc:"現購辦公設備 $200,000", correct:[["辦公設備","資產","增加","借方"],["現金","資產","減少","貸方"]], distractors:["存貨","應付帳款","折舊費用","銀行借款"]},
+{desc:"賒購商品(存貨) $150,000", correct:[["存貨","資產","增加","借方"],["應付帳款","負債","增加","貸方"]], distractors:["現金","銷貨成本","應收帳款","辦公設備"]},
+{desc:"現金銷售商品，售價 $80,000，成本 $50,000（複合分錄，需選4科目）", correct:[["現金","資產","增加","借方"],["銷貨收入","收入","增加","貸方"],["銷貨成本","費損","增加","借方"],["存貨","資產","減少","貸方"]], distractors:["應收帳款","應付帳款","折舊費用","用品費用"]},
+{desc:"賒銷商品，應收 $120,000，成本 $75,000（複合分錄，需選4科目）", correct:[["應收帳款","資產","增加","借方"],["銷貨收入","收入","增加","貸方"],["銷貨成本","費損","增加","借方"],["存貨","資產","減少","貸方"]], distractors:["現金","預收收入","呆帳費用","備抵呆帳"]},
+{desc:"收現應收帳款 $60,000", correct:[["現金","資產","增加","借方"],["應收帳款","資產","減少","貸方"]], distractors:["銷貨收入","存貨","應付帳款","備抵呆帳"]},
+{desc:"支付應付帳款 $100,000", correct:[["應付帳款","負債","減少","借方"],["現金","資產","減少","貸方"]], distractors:["銀行借款","應收帳款","存貨","薪資費用"]},
+{desc:"預付一年份保險費 $24,000", correct:[["預付保險費","資產","增加","借方"],["現金","資產","減少","貸方"]], distractors:["保險費","用品盤存","應付帳款","租金費用"]},
+{desc:"支付當月薪資 $90,000", correct:[["薪資費用","費損","增加","借方"],["現金","資產","減少","貸方"]], distractors:["應付薪資","租金費用","水電費","廣告費"]},
+{desc:"計提本月折舊 $5,000", correct:[["折舊費用","費損","增加","借方"],["累計折舊","資產","減少","貸方"]], distractors:["辦公設備","用品費用","呆帳費用","現金"]},
+{desc:"支付水電費 $8,000", correct:[["水電費","費損","增加","借方"],["現金","資產","減少","貸方"]], distractors:["租金費用","薪資費用","廣告費","用品費用"]},
+{desc:"支付當月房租 $30,000（租期已屆至，非預付）", correct:[["租金費用","費損","增加","借方"],["現金","資產","減少","貸方"]], distractors:["水電費","薪資費用","廣告費","用品費用"]},
+{desc:"預收客戶訂金 $20,000", correct:[["現金","資產","增加","借方"],["預收收入","負債","增加","貸方"]], distractors:["銷貨收入","應收帳款","存貨","股本"]},
+{desc:"交付商品，將預收收入轉列銷貨收入 $20,000", correct:[["預收收入","負債","減少","借方"],["銷貨收入","收入","增加","貸方"]], distractors:["現金","存貨","應收帳款","銷貨成本"]},
+{desc:"現購文具用品 $3,000，公司採資產法入帳，尚未領用", correct:[["用品盤存","資產","增加","借方"],["現金","資產","減少","貸方"]], distractors:["存貨","辦公設備","應付帳款","銀行借款"]},
+{desc:"期末盤點，用品耗用 $2,000", correct:[["用品費用","費損","增加","借方"],["用品盤存","資產","減少","貸方"]], distractors:["折舊費用","存貨","現金","薪資費用"]},
+{desc:"提列呆帳費用 $10,000", correct:[["呆帳費用","費損","增加","借方"],["備抵呆帳","資產","減少","貸方"]], distractors:["應收帳款","銷貨成本","折舊費用","現金"]},
+{desc:"應收帳款確定收不回，予以沖銷 $5,000", correct:[["備抵呆帳","資產","增加","借方"],["應收帳款","資產","減少","貸方"]], distractors:["呆帳費用","現金","銷貨收入","存貨"]},
+{desc:"支付銀行借款利息 $6,000", correct:[["利息費用","費損","增加","借方"],["現金","資產","減少","貸方"]], distractors:["銀行借款","應付利息","薪資費用","租金費用"]},
+{desc:"償還部分銀行借款本金 $100,000", correct:[["銀行借款","負債","減少","借方"],["現金","資產","減少","貸方"]], distractors:["利息費用","應付帳款","存貨","股本"]},
+{desc:"出售舊設備，帳面淨值 $200,000，售價 $180,000（採淨額法記錄，複合分錄，需選3科目）", correct:[["現金","資產","增加","借方"],["處分資產損失","費損","增加","借方"],["辦公設備","資產","減少","貸方"]], distractors:["折舊費用","銷貨收入","應收帳款","短期投資"]},
+{desc:"宣告並發放現金股利 $50,000", correct:[["保留盈餘","權益","減少","借方"],["現金","資產","減少","貸方"]], distractors:["股本","股利費用","應付股利","銷貨收入"]},
+{desc:"購買短期投資（有價證券）$100,000", correct:[["短期投資","資產","增加","借方"],["現金","資產","減少","貸方"]], distractors:["長期投資","存貨","應收帳款","股本"]},
+{desc:"期末結轉本期損益至保留盈餘（本期淨利 $40,000）", correct:[["本期損益","權益","減少","借方"],["保留盈餘","權益","增加","貸方"]], distractors:["現金","銷貨收入","股本","銷貨成本"]},
+{desc:"賒購辦公設備並簽發應付票據 $200,000", correct:[["辦公設備","資產","增加","借方"],["應付票據","負債","增加","貸方"]], distractors:["應付帳款","現金","銀行借款","存貨"]},
+{desc:"支付廣告費 $15,000", correct:[["廣告費","費損","增加","借方"],["現金","資產","減少","貸方"]], distractors:["水電費","薪資費用","租金費用","用品費用"]},
+{desc:"收到銀行存款利息收入 $3,000", correct:[["現金","資產","增加","借方"],["利息收入","收入","增加","貸方"]], distractors:["應收帳款","銷貨收入","利息費用","存貨"]},
+{desc:"支付本期應繳所得稅費用 $25,000", correct:[["所得稅費用","費損","增加","借方"],["現金","資產","減少","貸方"]], distractors:["應付所得稅","薪資費用","水電費","廣告費"]},
+{desc:"依法提撥法定盈餘公積 $30,000", correct:[["保留盈餘","權益","減少","借方"],["法定盈餘公積","權益","增加","貸方"]], distractors:["股本","現金","資本公積","本期損益"]}
+];
+
+// ---- 雙語對照資料 Bilingual reference data ----
+const ACCOUNT_EN = {
+  "現金":"Cash","股本":"Common Stock","銀行借款":"Bank Loan","辦公設備":"Office Equipment",
+  "存貨":"Inventory","應付帳款":"Accounts Payable","銷貨收入":"Sales Revenue","銷貨成本":"Cost of Goods Sold",
+  "應收帳款":"Accounts Receivable","預付保險費":"Prepaid Insurance","薪資費用":"Salary Expense",
+  "折舊費用":"Depreciation Expense","累計折舊":"Accumulated Depreciation","水電費":"Utilities Expense",
+  "租金費用":"Rent Expense","預收收入":"Unearned Revenue","用品盤存":"Supplies (Asset)",
+  "用品費用":"Supplies Expense","呆帳費用":"Bad Debt Expense","備抵呆帳":"Allowance for Doubtful Accounts",
+  "利息費用":"Interest Expense","處分資產損失":"Loss on Disposal of Assets","保留盈餘":"Retained Earnings",
+  "短期投資":"Short-term Investments","本期損益":"Income Summary","應付票據":"Notes Payable",
+  "廣告費":"Advertising Expense","利息收入":"Interest Income","所得稅費用":"Income Tax Expense",
+  "法定盈餘公積":"Legal Reserve","保險費":"Insurance Expense","應付利息":"Interest Payable",
+  "應付所得稅":"Income Tax Payable","應付股利":"Dividends Payable","應付薪資":"Salary Payable",
+  "股利費用":"Dividend Expense","資本公積":"Capital Surplus","長期投資":"Long-term Investments",
+};
+const CAT_EN = { "資產":"Asset","負債":"Liability","權益":"Equity","收入":"Revenue","費損":"Expense/Loss" };
+const DIR_EN = { "增加":"Increase","減少":"Decrease" };
+const SIDE_EN = { "借方":"Debit","貸方":"Credit" };
+const DESC_EN = [
+"Shareholders invest cash of $1,000,000 to establish the company.",
+"Borrow cash of $500,000 from the bank.",
+"Purchase office equipment for cash, $200,000.",
+"Purchase merchandise (inventory) on account, $150,000.",
+"Sell goods for cash: selling price $80,000, cost $50,000 (compound entry, select 4 accounts).",
+"Sell goods on account: receivable $120,000, cost $75,000 (compound entry, select 4 accounts).",
+"Collect cash from accounts receivable, $60,000.",
+"Pay accounts payable, $100,000.",
+"Prepay one year of insurance, $24,000.",
+"Pay salaries for the current month, $90,000.",
+"Record depreciation for the current month, $5,000.",
+"Pay utilities expense, $8,000.",
+"Pay current-month rent, already incurred and not prepaid, $30,000.",
+"Receive a customer deposit in advance, $20,000.",
+"Deliver goods; reclassify unearned revenue to sales revenue, $20,000.",
+"Purchase office supplies for cash, $3,000; recorded under the asset method, not yet used.",
+"Year-end count: supplies used, $2,000.",
+"Record bad debt expense, $10,000.",
+"Write off an uncollectible account receivable, $5,000.",
+"Pay interest on bank loan, $6,000.",
+"Repay part of the bank loan principal, $100,000.",
+"Sell old equipment: net book value $200,000, selling price $180,000 (net method, compound entry, select 3 accounts).",
+"Declare and pay cash dividends, $50,000.",
+"Purchase short-term investments (securities), $100,000.",
+"Close Income Summary to Retained Earnings at year-end (net income $40,000).",
+"Purchase office equipment on account by issuing a note payable, $200,000.",
+"Pay advertising expense, $15,000.",
+"Receive interest income on bank deposits, $3,000.",
+"Pay income tax expense for the current period, $25,000.",
+"Appropriate legal reserve as required by law, $30,000.",
+];
+
+const TXNS = TXNS_SRC.map((t,i)=>({
+  id:i+1, desc:t.desc, descEn: DESC_EN[i],
+  accounts:[
+    ...t.correct.map(c=>({name:c[0],correct:true,category:c[1],direction:c[2],side:c[3]})),
+    ...t.distractors.map(d=>({name:d,correct:false}))
+  ]
+}));
+
+const CATEGORIES = ["資產","負債","權益","收入","費損"];
+const DIRECTIONS = ["增加","減少"];
+const SIDES = ["借方","貸方"];
+
+let student = {id:'', name:''};
+let txnIndex = 0, picked = [], subStep = 0, txnMistakes = 0, qScores = [];
+let sessionTxns = [];
+
+const app = document.getElementById('app');
+
+function shuffleArray(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function buildSessionTxns() {
+  return shuffleArray(TXNS).map(t => ({
+    ...t,
+    accounts: shuffleArray(t.accounts)
+  }));
+}
+
+function startScreen() {
+  app.innerHTML = `
+    <h1>會計分錄挑戰<span class="en">Accounting Journal Entry Challenge</span></h1>
+    <div class="muted">共30題，含複合式分錄，作答完成後顯示成績表<span class="en">30 questions in total, including compound entries. Your score summary appears at the end.</span></div>
+    <div class="card">
+      <label class="muted">學號<span class="en-inline"> / Student ID</span></label>
+      <input type="text" id="sid" placeholder="例如 M1234567" inputmode="text">
+      <div style="height:12px;"></div>
+      <label class="muted">姓名<span class="en-inline"> / Name</span></label>
+      <input type="text" id="sname" placeholder="請輸入姓名 / Enter your name">
+      <div class="err" id="startErr"></div>
+      <button class="btn-primary" id="startBtn">開始作答 Start</button>
+    </div>
+    <div class="foot">南臺科技大學行銷與流通管理系 教學用途<br>STUST, Dept. of Marketing and Logistics Management — For teaching use</div>
+  `;
+  document.getElementById('startBtn').onclick = () => {
+    const idVal = document.getElementById('sid').value.trim();
+    const nameVal = document.getElementById('sname').value.trim();
+    if (!idVal || !nameVal) { document.getElementById('startErr').textContent = '請輸入學號與姓名 / Please enter your Student ID and Name'; return; }
+    student = {id: idVal, name: nameVal};
+    sessionTxns = buildSessionTxns();
+    txnIndex = 0; picked = []; subStep = 0; qScores = [];
+    render();
+  };
+}
+
+function render() {
+  const txn = sessionTxns[txnIndex];
+  const needCount = txn.accounts.filter(a=>a.correct).length;
+
+  if (subStep === 0) {
+    txnMistakes = 0;
+    app.innerHTML = `
+      <div class="progress">第 ${txnIndex + 1} / 30 題<span class="en-inline"> ・ Question ${txnIndex + 1} of 30</span></div>
+      <div class="qtitle">${txn.desc}<span class="en">${txn.descEn}</span></div>
+      <div class="muted">請選擇此交易影響的 ${needCount} 個科目<span class="en">Please select the ${needCount} account(s) affected by this transaction.</span></div>
+      <div class="grid grid-fit" id="acct-grid"></div>
+      <div class="err" id="err"></div>
+      <button class="btn-primary" id="confirmBtn">確認選擇 Confirm</button>
+    `;
+    const grid = document.getElementById('acct-grid');
+    txn.accounts.forEach(a => {
+      const btn = document.createElement('button');
+      btn.innerHTML = `${a.name}<span class="en">${ACCOUNT_EN[a.name] || ''}</span>`;
+      btn.dataset.name = a.name;
+      btn.onclick = () => {
+        if (picked.includes(a.name)) picked = picked.filter(x => x !== a.name);
+        else if (picked.length < needCount) picked.push(a.name);
+        highlightPicked();
+      };
+      grid.appendChild(btn);
+    });
+    highlightPicked();
+    document.getElementById('confirmBtn').onclick = () => {
+      const err = document.getElementById('err');
+      if (picked.length !== needCount) { err.textContent = `請選擇 ${needCount} 個科目後再確認 / Please select ${needCount} account(s) before confirming`; return; }
+      const correctSet = txn.accounts.filter(a => a.correct).map(a => a.name).sort();
+      const pickedSet = [...picked].sort();
+      if (JSON.stringify(correctSet) !== JSON.stringify(pickedSet)) {
+        err.textContent = '此選擇不正確，請重新選擇 / This selection is incorrect, please try again';
+        txnMistakes++; picked = []; highlightPicked();
+        return;
+      }
+      err.textContent = ''; subStep = 1; render();
+    };
+  } else if (subStep >= 1 && subStep <= picked.length) {
+    const accName = picked[subStep - 1];
+    const accData = txn.accounts.find(a => a.name === accName);
+    app.innerHTML = `
+      <div class="progress">第 ${txnIndex + 1} / 30 題<span class="en-inline"> ・ Question ${txnIndex + 1} of 30</span></div>
+      <div class="qtitle">${txn.desc}<span class="en">${txn.descEn}</span></div>
+      <div class="card">
+        <span class="acctbadge">科目 ${subStep}/${picked.length}：<span class="en-inline">Account ${subStep}/${picked.length}:</span></span>
+        <div class="acctname">${accName}<span class="en">${ACCOUNT_EN[accName] || ''}</span></div>
+      </div>
+      <div class="muted" style="margin-top:14px;">Step 1：此科目屬於五大類中的哪一類？<span class="en">Which of the five categories does this account belong to?</span></div>
+      <div class="grid grid-fit" id="cat-grid"></div>
+      <div id="dir-wrap" class="step-hidden">
+        <div class="muted" style="margin-top:14px;">Step 2：金額變動是增加還是減少？<span class="en">Does the amount increase or decrease?</span></div>
+        <div class="grid grid-2" id="dir-grid"></div>
+      </div>
+      <div id="side-wrap" class="step-hidden">
+        <div class="muted" style="margin-top:14px;">Step 3：應記入借方還是貸方？<span class="en">Should it be recorded as a debit or a credit?</span></div>
+        <div class="grid grid-2" id="side-grid"></div>
+      </div>
+      <div id="fb"></div>
+    `;
+    const catGrid = document.getElementById('cat-grid');
+    CATEGORIES.forEach(c => {
+      const btn = document.createElement('button');
+      btn.innerHTML = `${c}<span class="en">${CAT_EN[c]}</span>`;
+      btn.onclick = () => {
+        [...catGrid.children].forEach(b => b.classList.remove('picked','wrong-flash'));
+        if (c === accData.category) {
+          btn.classList.add('picked');
+          document.getElementById('dir-wrap').classList.remove('step-hidden');
+          document.getElementById('fb').innerHTML = '<div class="fb-ok">✓ 分類正確 Correct category</div>';
+        } else {
+          btn.classList.add('wrong-flash');
+          txnMistakes++;
+          document.getElementById('fb').innerHTML = '<div class="fb-bad">✗ 不正確，再想想這個科目的性質 Incorrect, think again about this account\'s nature</div>';
+          document.getElementById('dir-wrap').classList.add('step-hidden');
+          document.getElementById('side-wrap').classList.add('step-hidden');
+        }
+      };
+      catGrid.appendChild(btn);
+    });
+    const dirGrid = document.getElementById('dir-grid');
+    DIRECTIONS.forEach(d => {
+      const btn = document.createElement('button');
+      btn.innerHTML = `${d}<span class="en">${DIR_EN[d]}</span>`;
+      btn.onclick = () => {
+        [...dirGrid.children].forEach(b => b.classList.remove('picked','wrong-flash'));
+        if (d === accData.direction) {
+          btn.classList.add('picked');
+          document.getElementById('side-wrap').classList.remove('step-hidden');
+        } else {
+          btn.classList.add('wrong-flash');
+          txnMistakes++;
+          document.getElementById('side-wrap').classList.add('step-hidden');
+        }
+      };
+      dirGrid.appendChild(btn);
+    });
+    const sideGrid = document.getElementById('side-grid');
+    SIDES.forEach(s => {
+      const btn = document.createElement('button');
+      btn.innerHTML = `${s}<span class="en">${SIDE_EN[s]}</span>`;
+      btn.onclick = () => {
+        [...sideGrid.children].forEach(b => b.classList.remove('picked','wrong-flash'));
+        if (s === accData.side) {
+          btn.classList.add('picked');
+          setTimeout(() => { subStep++; render(); }, 450);
+        } else {
+          btn.classList.add('wrong-flash');
+          txnMistakes++;
+        }
+      };
+      sideGrid.appendChild(btn);
+    });
+  } else {
+    const qScore = Math.max(0, 10 - txnMistakes * 2);
+    qScores.push(qScore);
+    const allDone = txnIndex === sessionTxns.length - 1;
+    app.innerHTML = `
+      <div class="progress">第 ${txnIndex + 1} / 30 題<span class="en-inline"> ・ Question ${txnIndex + 1} of 30</span></div>
+      <div class="card" style="text-align:center;">
+        <div style="font-weight:700;">✓ 第${txnIndex + 1}題完成（本題得分 ${qScore}/10）<span class="en">Question ${txnIndex + 1} complete (score: ${qScore}/10)</span></div>
+        <div class="muted" style="margin-top:8px;">${picked.map(p => txn.accounts.find(a=>a.name===p)).map(a=>`${a.name} ${ACCOUNT_EN[a.name]||''}（${a.category}${a.direction}，${a.side} / ${CAT_EN[a.category]} ${DIR_EN[a.direction]}, ${SIDE_EN[a.side]}）`).join('、')}</div>
+      </div>
+      ${allDone ? '<button class="btn-primary" id="nextBtn">查看成績表 View Results</button>' : '<button class="btn-primary" id="nextBtn">下一題 Next</button>'}
+    `;
+    document.getElementById('nextBtn').onclick = () => {
+      if (allDone) { resultScreen(); }
+      else { txnIndex++; picked = []; subStep = 0; render(); }
+    };
+  }
+}
+
+function highlightPicked() {
+  document.querySelectorAll('#acct-grid button').forEach(b => {
+    if (picked.includes(b.dataset.name)) b.classList.add('picked');
+    else b.classList.remove('picked');
+  });
+}
+
+function resultScreen() {
+  const total = qScores.reduce((a,b)=>a+b,0);
+  const maxTotal = qScores.length * 10;
+  const pct = Math.round((total/maxTotal)*100);
+  app.innerHTML = `
+    <h1>成績表<span class="en">Results</span></h1>
+    <div class="card">
+      <table>
+        <tr><td class="muted">學號 <span class="en-inline">Student ID</span></td><td>${student.id}</td></tr>
+        <tr><td class="muted">姓名 <span class="en-inline">Name</span></td><td>${student.name}</td></tr>
+        <tr><td class="muted">完成題數 <span class="en-inline">Completed</span></td><td>${qScores.length} / 30</td></tr>
+        <tr><td class="muted">總分 <span class="en-inline">Total Score</span></td><td>${total} / ${maxTotal}</td></tr>
+        <tr><td class="muted">正確率 <span class="en-inline">Accuracy</span></td><td>${pct}%</td></tr>
+      </table>
+      <button class="btn-primary" id="restartBtn">重新開始 Restart</button>
+    </div>
+    <div class="foot">請將此成績截圖回傳老師<br>Please screenshot this result and send it to your instructor</div>
+  `;
+  document.getElementById('restartBtn').onclick = () => startScreen();
+}
+
+startScreen();
+</script>
+</body>
+</html>
