@@ -82,6 +82,7 @@
 </head>
 <body>
 <div id="app"></div>
+<script src="../config.js"></script>
 <script>
 const TXNS_SRC = [
 {desc:"股東投入現金 $1,000,000 設立公司", correct:[["現金","資產","增加","借方"],["股本","權益","增加","貸方"]], distractors:["應付帳款","銷貨收入","銀行借款","保留盈餘"]},
@@ -367,6 +368,22 @@ function highlightPicked() {
   });
 }
 
+function reportScore(payload) {
+  const el = document.getElementById('sendStatus');
+  const url = window.SCORE_ENDPOINT;
+  if (!url || !el) return;
+  const send = () => {
+    el.innerHTML = '成績傳送中…<span class="en">Sending your score…</span>';
+    fetch(url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) })
+      .then(() => { el.innerHTML = '✓ 成績已送出<span class="en">Score sent to your instructor</span>'; })
+      .catch(() => {
+        el.innerHTML = '✗ 送出失敗，請檢查網路後<a href="#" id="retrySend">重試</a>，或截圖回傳<span class="en">Failed to send. Check your connection and retry, or send a screenshot.</span>';
+        document.getElementById('retrySend').onclick = (e) => { e.preventDefault(); send(); };
+      });
+  };
+  send();
+}
+
 function resultScreen() {
   const total = qScores.reduce((a,b)=>a+b,0);
   const maxTotal = qScores.length * 10;
@@ -381,11 +398,13 @@ function resultScreen() {
         <tr><td class="muted">總分 <span class="en-inline">Total Score</span></td><td>${total} / ${maxTotal}</td></tr>
         <tr><td class="muted">正確率 <span class="en-inline">Accuracy</span></td><td>${pct}%</td></tr>
       </table>
+      <div class="muted" id="sendStatus" style="margin-top:12px;text-align:center;"></div>
       <button class="btn-primary" id="restartBtn">重新開始 Restart</button>
     </div>
     <div class="foot">請將此成績截圖回傳老師<br>Please screenshot this result and send it to your instructor</div>
   `;
   document.getElementById('restartBtn').onclick = () => startScreen();
+  reportScore({game:'分錄挑戰 Journal Entry', studentId:student.id, name:student.name, score:total, maxScore:maxTotal, accuracy:pct, completed:qScores.length});
 }
 
 startScreen();

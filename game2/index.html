@@ -610,6 +610,7 @@
     <div><span>正確率 Accuracy</span><b id="stat-accuracy">--</b></div>
     <div><span>花費時間 Time</span><b id="stat-time">--</b></div>
   </div>
+  <div id="send-status" style="margin-top:10px;font-size:0.85rem;color:var(--muted);"></div>
 </div>
 <button class="reset-btn" id="reset-btn">🔄 重新開始（自動洗牌） Restart</button>
 </div>
@@ -618,6 +619,7 @@
 <div id="screen-fire"></div>
 <canvas id="fx-canvas"></canvas>
 
+<script src="../config.js"></script>
 <script>
 const TERMS = [
   {name:"現金", en:"Cash", cat:"資產"},
@@ -751,6 +753,22 @@ function gradeFor(accuracyPct){
   return "📚 建議複習會計科目分類再挑戰！ Review the account categories and try again!";
 }
 
+function reportScore(payload){
+  const el = document.getElementById('send-status');
+  const url = window.SCORE_ENDPOINT;
+  if(!url || !el) return;
+  const send = () => {
+    el.textContent = '成績傳送中… Sending your score…';
+    fetch(url, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(payload) })
+      .then(() => { el.textContent = '✓ 成績已送出 Score sent to your instructor'; })
+      .catch(() => {
+        el.innerHTML = '✗ 送出失敗 Failed to send — <a href="#" id="retry-send" style="color:#fde047;">重試 Retry</a>，或截圖回傳 or send a screenshot';
+        document.getElementById('retry-send').onclick = (e) => { e.preventDefault(); send(); };
+      });
+  };
+  send();
+}
+
 function showFinalScore(){
   const total = TERMS.length;
   const accuracy = Math.round((correctCount/(correctCount+wrongCount||1))*100);
@@ -763,6 +781,7 @@ function showFinalScore(){
   statTime.textContent = elapsedSeconds + " 秒";
   winGrade.textContent = gradeFor(accuracy);
   winBanner.style.display = 'block';
+  reportScore({game:'科目分類 Account Classification', studentId:studentId, name:studentName, score:correctCount, maxScore:total, accuracy:accuracy, mistakes:wrongCount, seconds:elapsedSeconds});
 }
 
 function createChip(term){
